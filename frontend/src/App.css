@@ -1,0 +1,37 @@
+.app-container {
+  background-color: #0f111a;
+  color: #e6edf3;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.pro-badge {
+  font-size: 0.5em;
+  background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%);
+  padding: 2px 8px;
+  border-radius: 10px;
+  vertical-align: middle;
+  color: #000;
+  font-weight: bold;
+}
+
+.message-row.ai .message-bubble {
+  background: #1c212e;
+  border-left: 4px solid #4facfe;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 10px;
+}
+
+.page-tag {
+  display: inline-block;
+  margin-top: 8px;
+  margin-right: 5px;
+  padding: 2px 8px;
+  background: #2d3343;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: #4facfe;
+  border: 1px solid #3d4455;
+}
