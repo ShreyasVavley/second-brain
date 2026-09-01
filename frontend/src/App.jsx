@@ -158,6 +158,16 @@ function App() {
               </div>
             </div>
           ))}
+          {isLoading && (
+            <div style={{ marginBottom: '20px', textAlign: 'left' }}>
+              <div style={{ 
+                display: 'inline-block', padding: '15px', borderRadius: '12px', 
+                backgroundColor: '#1c212e', border: '1px solid #3d4455', color: '#888', fontStyle: 'italic'
+              }}>
+                Brain is thinking...
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 

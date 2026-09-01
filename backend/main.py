@@ -35,13 +35,26 @@ async def upload_pdf(file: UploadFile = File(...)):
         metadatas = []
         ids = []
 
+        chunk_size = 1000
+        overlap = 200
+
         for i, page in enumerate(pdf.pages):
             content = page.extract_text()
-            if content.strip():
-                chunk_id = f"{file.filename}_p{i}"
-                text_chunks.append(content)
-                metadatas.append({"source": file.filename, "page": i + 1})
-                ids.append(chunk_id)
+            if content:
+                content = content.strip()
+                start = 0
+                chunk_index = 0
+                while start < len(content):
+                    end = start + chunk_size
+                    chunk = content[start:end]
+                    
+                    chunk_id = f"{file.filename}_p{i}_c{chunk_index}"
+                    text_chunks.append(chunk)
+                    metadatas.append({"source": file.filename, "page": i + 1})
+                    ids.append(chunk_id)
+                    
+                    start += (chunk_size - overlap)
+                    chunk_index += 1
 
         # Add to vector store
         collection.add(documents=text_chunks, metadatas=metadatas, ids=ids)
@@ -55,9 +68,16 @@ async def ask_question(q: str = Query(...)):
         # 1. Retrieve relevant context from ChromaDB
         results = collection.query(query_texts=[q], n_results=5)
         context = "\n".join(results['documents'][0])
-        
         # 2. Generate response using the new SDK
-        prompt = f"Using this context: {context}\n\nQuestion: {q}\nAnswer concisely:"
+        prompt = f"""You are an AI assistant connected to a user's Second Brain.
+Answer the user's question using ONLY the provided context. If the answer is not contained in the context, say "I cannot answer this based on the provided documents."
+When you use information from the context, always include an inline citation to the source file and page (e.g., [Source: file.pdf, Page: 2]).
+
+Context:
+{context}
+
+Question: {q}
+Answer:"""
         
         response = client.models.generate_content(
             model="gemini-2.0-flash",
