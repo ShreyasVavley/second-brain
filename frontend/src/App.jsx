@@ -11,6 +11,7 @@ function App() {
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [documents, setDocuments] = useState([]);
   const messagesEndRef = useRef(null);
 
   // Speech Recognition Setup
@@ -19,7 +20,27 @@ function App() {
   : null;
   const recognition = useRef(SpeechRecognition ? new SpeechRecognition() : null);
 
+  const fetchDocuments = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/documents');
+      const data = await res.json();
+      setDocuments(data.documents || []);
+    } catch (e) {
+      console.error("Failed to fetch documents", e);
+    }
+  };
+
+  const deleteDocument = async (filename) => {
+    try {
+      await fetch(`http://localhost:8000/documents/${filename}`, { method: 'DELETE' });
+      fetchDocuments();
+    } catch (e) {
+      console.error("Failed to delete", e);
+    }
+  };
+
   useEffect(() => {
+    fetchDocuments();
     setMessages([{ role: 'ai', text: "# VK Second Brain Pro\nUpload PDFs to begin. You can now use voice commands and deep analysis." }]);
     
     if (recognition.current) {
@@ -54,6 +75,7 @@ function App() {
     try {
       await fetch('http://localhost:8000/upload', { method: 'POST', body: formData });
       setMessages(prev => [...prev, { role: 'ai', text: `✅ **Indexed:** ${file.name}. Ready for questions.` }]);
+      fetchDocuments();
     } catch (err) {
       setMessages(prev => [...prev, { role: 'ai', text: "❌ Upload Failed." }]);
     } finally {
@@ -61,19 +83,42 @@ function App() {
     }
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-    const userMsg = { role: 'user', text: input };
+  const handleSend = async (overrideInput) => {
+    const query = typeof overrideInput === 'string' ? overrideInput : input;
+    if (!query.trim() || isLoading) return;
+    const userMsg = { role: 'user', text: query };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
     try {
-      const res = await fetch(`http://localhost:8000/ask?q=${encodeURIComponent(input)}`);
+      const res = await fetch(`http://localhost:8000/ask?q=${encodeURIComponent(query)}`);
       const data = await res.json();
-      setMessages(prev => [...prev, { role: 'ai', text: data.answer, citations: data.citations }]);
+      setMessages(prev => [...prev, { role: 'ai', text: data.answer, citations: data.citations, originalQuery: query }]);
     } catch (err) {
       setMessages(prev => [...prev, { role: 'ai', text: "⚠️ Server connection error." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleWebSearch = async (query) => {
+    setIsLoading(true);
+    setMessages(prev => [...prev, { role: 'ai', text: "🌐 Searching the web..." }]);
+    try {
+      const res = await fetch(`http://localhost:8000/ask-web?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        newMsgs[newMsgs.length - 1] = { role: 'ai', text: `**Web Search Results:**\n\n${data.answer}` };
+        return newMsgs;
+      });
+    } catch (err) {
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        newMsgs[newMsgs.length - 1] = { role: 'ai', text: "❌ Web search failed." };
+        return newMsgs;
+      });
     } finally {
       setIsLoading(false);
     }
@@ -124,6 +169,23 @@ function App() {
           <label htmlFor="up" style={{ backgroundColor: '#7D4047', color: '#F1ECE6', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Select PDF</label>
         </div>
 
+        {documents.length > 0 && (
+          <div style={{ marginTop: '10px', overflowY: 'auto', flex: 1 }}>
+            <h3 style={{ color: '#DDD5CD', fontSize: '0.9rem', marginBottom: '8px', borderBottom: '1px solid #3A3A3A', paddingBottom: '4px' }}>My Documents</h3>
+            {documents.map(doc => (
+              <div key={doc} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#3A3A3A', padding: '8px', borderRadius: '6px', marginBottom: '5px' }}>
+                <span style={{ color: '#F1ECE6', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={doc}>
+                  <FileText size={12} style={{ display: 'inline', marginRight: '5px' }} />
+                  {doc}
+                </span>
+                <button onClick={() => deleteDocument(doc)} style={{ background: 'transparent', border: 'none', color: '#ff4757', cursor: 'pointer', padding: '2px' }}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <button onClick={() => setMessages([])} style={{ ...btnStyle, marginTop: 'auto', backgroundColor: '#7D4047', color: '#F1ECE6', border: 'none' }}>
           <Trash2 size={18}/> Clear Chat
         </button>
@@ -132,34 +194,65 @@ function App() {
       {/* CHAT AREA */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px', position: 'relative' }}>
         <div style={{ flex: 1, overflowY: 'auto', marginBottom: '80px', paddingRight: '10px' }}>
-          {messages.map((msg, i) => (
-            <div key={i} style={{ marginBottom: '20px', textAlign: msg.role === 'user' ? 'right' : 'left' }}>
-              <div style={{ 
-                display: 'inline-block', padding: '15px', borderRadius: '12px', 
-                backgroundColor: msg.role === 'user' ? '#7D4047' : '#FFFFFF',
-                color: msg.role === 'user' ? '#FFFFFF' : '#2E2E2E',
-                maxWidth: '85%', textAlign: 'left', border: msg.role === 'ai' ? '1px solid #DDD5CD' : 'none',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
-              }}>
-                <ReactMarkdown components={{
-                  code({node, inline, className, children, ...props}) {
-                    const match = /language-(\w+)/.exec(className || '');
-                    return !inline && match ? (
-                      <SyntaxHighlighter style={atomDark} language={match[1]} PreTag="div" {...props}>{String(children).replace(/\n$/, '')}</SyntaxHighlighter>
-                    ) : <code className={className} {...props}>{children}</code>
-                  }
-                }}>{msg.text}</ReactMarkdown>
-                
-                {msg.citations?.length > 0 && (
-                  <div style={{ marginTop: '10px', display: 'flex', gap: '5px' }}>
-                    {Array.from(new Set(msg.citations.map(c => c.page))).map(p => (
-                      <span key={p} style={{ fontSize: '0.65rem', color: '#7D4047', background: '#F1ECE6', padding: '2px 8px', borderRadius: '10px', border: '1px solid #DDD5CD' }}>📄 Page {p}</span>
-                    ))}
-                  </div>
-                )}
+          {messages.map((msg, i) => {
+            let mainText = msg.text;
+            let suggested = [];
+            if (msg.role === 'ai' && mainText.includes('### Suggested Questions')) {
+              const parts = mainText.split('### Suggested Questions');
+              mainText = parts[0].trim();
+              const qs = parts[1].split('\n').filter(line => line.trim().match(/^\d+\./));
+              suggested = qs.map(q => q.replace(/^\d+\.\s*/, '').trim());
+            }
+            const showWebFallback = msg.role === 'ai' && mainText.includes("I cannot answer this based on the provided documents.");
+
+            return (
+              <div key={i} style={{ marginBottom: '20px', textAlign: msg.role === 'user' ? 'right' : 'left' }}>
+                <div style={{ 
+                  display: 'inline-block', padding: '15px', borderRadius: '12px', 
+                  backgroundColor: msg.role === 'user' ? '#7D4047' : '#FFFFFF',
+                  color: msg.role === 'user' ? '#FFFFFF' : '#2E2E2E',
+                  maxWidth: '85%', textAlign: 'left', border: msg.role === 'ai' ? '1px solid #DDD5CD' : 'none',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+                }}>
+                  <ReactMarkdown components={{
+                    code({node, inline, className, children, ...props}) {
+                      const match = /language-(\w+)/.exec(className || '');
+                      return !inline && match ? (
+                        <SyntaxHighlighter style={atomDark} language={match[1]} PreTag="div" {...props}>{String(children).replace(/\n$/, '')}</SyntaxHighlighter>
+                      ) : <code className={className} {...props}>{children}</code>
+                    }
+                  }}>{mainText}</ReactMarkdown>
+                  
+                  {msg.citations?.length > 0 && (
+                    <div style={{ marginTop: '10px', display: 'flex', gap: '5px' }}>
+                      {Array.from(new Set(msg.citations.map(c => c.page))).map(p => (
+                        <span key={p} style={{ fontSize: '0.65rem', color: '#7D4047', background: '#F1ECE6', padding: '2px 8px', borderRadius: '10px', border: '1px solid #DDD5CD' }}>📄 Page {p}</span>
+                      ))}
+                    </div>
+                  )}
+
+                  {showWebFallback && (
+                    <div style={{ marginTop: '15px' }}>
+                      <button onClick={() => handleWebSearch(msg.originalQuery)} style={{ background: '#7D4047', color: '#F1ECE6', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                        Search the Web Instead 🌐
+                      </button>
+                    </div>
+                  )}
+
+                  {suggested.length > 0 && (
+                    <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <p style={{ fontSize: '0.75rem', color: '#888', margin: '0 0 5px 0' }}>Suggested follow-ups:</p>
+                      {suggested.map((q, idx) => (
+                        <button key={idx} onClick={() => handleSend(q)} style={{ textAlign: 'left', background: '#F1ECE6', border: '1px solid #DDD5CD', color: '#7D4047', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }}>
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {isLoading && (
             <div style={{ marginBottom: '20px', textAlign: 'left' }}>
               <div style={{ 

@@ -73,6 +73,12 @@ async def ask_question(q: str = Query(...)):
 Answer the user's question using ONLY the provided context. If the answer is not contained in the context, say "I cannot answer this based on the provided documents."
 When you use information from the context, always include an inline citation to the source file and page (e.g., [Source: file.pdf, Page: 2]).
 
+At the very end of your response, you MUST provide exactly 3 suggested follow-up questions for the user to ask next. Format them EXACTLY like this:
+### Suggested Questions
+1. [First Question]
+2. [Second Question]
+3. [Third Question]
+
 Context:
 {context}
 
@@ -113,6 +119,44 @@ async def analyze_all_docs(task: str = "Summarize the key themes across all docu
         return {"answer": response.text}
     except Exception as e:
         return {"answer": f"Analysis Error: {str(e)}"}
+
+@app.get("/documents")
+async def get_documents():
+    try:
+        results = collection.get()
+        if not results or not results['metadatas']:
+            return {"documents": []}
+        
+        sources = set()
+        for meta in results['metadatas']:
+            if meta and 'source' in meta:
+                sources.add(meta['source'])
+                
+        return {"documents": list(sources)}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.delete("/documents/{filename}")
+async def delete_document(filename: str):
+    try:
+        collection.delete(where={"source": filename})
+        return {"message": f"Successfully deleted {filename}"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/ask-web")
+async def ask_web(q: str = Query(...)):
+    try:
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=q,
+            config=types.GenerateContentConfig(
+                tools=[{"google_search": {}}]
+            )
+        )
+        return {"answer": response.text}
+    except Exception as e:
+        return {"answer": f"Web Search Error: {str(e)}"}
 
 if __name__ == "__main__":
     import uvicorn
