@@ -20,5 +20,5 @@ def query_brain(user_query):
     context = " ".join(results['documents'][0])
 
     prompt = f"Using these notes: {context}\n\nQuestion: {user_query}"
-    response = ai_client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+    response = ai_client.models.generate_content(model="gemini-3.6-flash", contents=prompt)
     return response.text

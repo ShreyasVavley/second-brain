@@ -80,7 +80,7 @@ Question: {q}
 Answer:"""
         
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-3.6-flash",
             contents=prompt
         )
 
@@ -102,7 +102,7 @@ async def analyze_all_docs(task: str = "Summarize the key themes across all docu
         prompt = f"SYSTEM: Perform cross-document analysis.\nCONTEXT:\n{full_context}\n\nTASK: {task}"
 
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-3.6-flash",
             contents=prompt,
             config=types.GenerateContentConfig(temperature=0.3)
         )
