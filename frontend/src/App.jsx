@@ -4,6 +4,64 @@ import { jsPDF } from 'jspdf';
 import { Mic, MicOff, Download, Layers, Send, Trash2, FileText } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import mermaid from 'mermaid';
+
+mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+const Mermaid = ({ chart }) => {
+  const [svg, setSvg] = useState('');
+  const id = useRef(`mermaid-${Math.random().toString(36).substr(2, 9)}`);
+
+  useEffect(() => {
+    mermaid.render(id.current, chart).then(res => setSvg(res.svg)).catch(e => console.error("Mermaid render error", e));
+  }, [chart]);
+
+  return <div dangerouslySetInnerHTML={{ __html: svg }} />;
+};
+
+const QuizUI = ({ questions }) => {
+  const [current, setCurrent] = useState(0);
+  const [selected, setSelected] = useState(null);
+  
+  if (!questions || questions.length === 0) return <div>No quiz available.</div>;
+  if (current >= questions.length) return <div style={{ fontWeight: 'bold' }}>🎉 Quiz Completed!</div>;
+
+  const q = questions[current];
+  return (
+    <div style={{ background: '#F1ECE6', padding: '15px', borderRadius: '12px', color: '#2E2E2E' }}>
+      <h3 style={{ marginBottom: '10px' }}>Question {current + 1} of {questions.length}</h3>
+      <p style={{ fontWeight: 'bold', marginBottom: '15px' }}>{q.question}</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {q.options.map(opt => (
+          <button 
+            key={opt}
+            onClick={() => setSelected(opt)}
+            style={{
+              padding: '10px', borderRadius: '8px', border: '1px solid #DDD5CD',
+              textAlign: 'left', cursor: 'pointer',
+              background: selected === opt ? (opt === q.correctAnswer ? '#d4edda' : '#f8d7da') : '#FFFFFF',
+              color: '#2E2E2E'
+            }}
+            disabled={!!selected}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+      {selected && (
+        <div style={{ marginTop: '15px', fontSize: '0.9rem' }}>
+          <p style={{ color: selected === q.correctAnswer ? 'green' : 'red', fontWeight: 'bold' }}>
+            {selected === q.correctAnswer ? 'Correct!' : `Incorrect. The correct answer was: ${q.correctAnswer}`}
+          </p>
+          <p>{q.explanation}</p>
+          <button onClick={() => { setSelected(null); setCurrent(c => c + 1); }} style={{ marginTop: '10px', background: '#7D4047', color: '#F1ECE6', border: 'none', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer' }}>
+            Next Question
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -124,6 +182,51 @@ function App() {
     }
   };
 
+  const generateMindMap = async () => {
+    setIsLoading(true);
+    setMessages(prev => [...prev, { role: 'ai', text: "🧠 Generating Mind Map..." }]);
+    try {
+      const res = await fetch(`http://localhost:8000/mindmap`);
+      const data = await res.json();
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        newMsgs[newMsgs.length - 1] = { role: 'ai', isMindMap: true, text: data.answer };
+        return newMsgs;
+      });
+    } catch (err) {
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        newMsgs[newMsgs.length - 1] = { role: 'ai', text: "❌ Mind Map generation failed." };
+        return newMsgs;
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateQuiz = async () => {
+    setIsLoading(true);
+    setMessages(prev => [...prev, { role: 'ai', text: "🎓 Generating Quiz..." }]);
+    try {
+      const res = await fetch(`http://localhost:8000/quiz`);
+      const data = await res.json();
+      const questions = JSON.parse(data.answer);
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        newMsgs[newMsgs.length - 1] = { role: 'ai', isQuiz: true, questions, text: "Here is your quiz:" };
+        return newMsgs;
+      });
+    } catch (err) {
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        newMsgs[newMsgs.length - 1] = { role: 'ai', text: "❌ Quiz generation failed." };
+        return newMsgs;
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const runDeepAnalysis = async () => {
     setIsLoading(true);
     setMessages(prev => [...prev, { role: 'ai', text: "⏳ Running Cross-Document Analysis..." }]);
@@ -161,6 +264,8 @@ function App() {
         <h2 className="cursive-font" style={{ color: '#F1ECE6', fontSize: '2rem', marginBottom: '20px', textAlign: 'center', whiteSpace: 'nowrap' }}>VK BRAIN PRO</h2>
         
         <button onClick={runDeepAnalysis} style={btnStyle}><Layers size={18}/> Deep Analysis</button>
+        <button onClick={generateMindMap} style={btnStyle}><Layers size={18}/> Generate Mind Map</button>
+        <button onClick={generateQuiz} style={btnStyle}><FileText size={18}/> Take a Quiz</button>
         <button onClick={downloadChat} style={btnStyle}><Download size={18}/> Export PDF</button>
         
         <div style={{ padding: '20px', border: '2px dashed #7D4047', borderRadius: '12px', textAlign: 'center', background: '#3A3A3A', marginTop: '10px' }}>
@@ -214,14 +319,20 @@ function App() {
                   maxWidth: '85%', textAlign: 'left', border: msg.role === 'ai' ? '1px solid #DDD5CD' : 'none',
                   boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
                 }}>
-                  <ReactMarkdown components={{
-                    code({node, inline, className, children, ...props}) {
-                      const match = /language-(\w+)/.exec(className || '');
-                      return !inline && match ? (
-                        <SyntaxHighlighter style={atomDark} language={match[1]} PreTag="div" {...props}>{String(children).replace(/\n$/, '')}</SyntaxHighlighter>
-                      ) : <code className={className} {...props}>{children}</code>
-                    }
-                  }}>{mainText}</ReactMarkdown>
+                  {msg.isMindMap ? (
+                    <Mermaid chart={mainText} />
+                  ) : msg.isQuiz ? (
+                    <QuizUI questions={msg.questions} />
+                  ) : (
+                    <ReactMarkdown components={{
+                      code({node, inline, className, children, ...props}) {
+                        const match = /language-(\w+)/.exec(className || '');
+                        return !inline && match ? (
+                          <SyntaxHighlighter style={atomDark} language={match[1]} PreTag="div" {...props}>{String(children).replace(/\n$/, '')}</SyntaxHighlighter>
+                        ) : <code className={className} {...props}>{children}</code>
+                      }
+                    }}>{mainText}</ReactMarkdown>
+                  )}
                   
                   {msg.citations?.length > 0 && (
                     <div style={{ marginTop: '10px', display: 'flex', gap: '5px' }}>

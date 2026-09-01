@@ -158,6 +158,53 @@ async def ask_web(q: str = Query(...)):
     except Exception as e:
         return {"answer": f"Web Search Error: {str(e)}"}
 
+@app.get("/mindmap")
+async def generate_mindmap():
+    try:
+        results = collection.query(query_texts=["main topics and entities"], n_results=10)
+        if not results['documents'] or not results['documents'][0]:
+            return {"answer": "No documents found to map."}
+        
+        context = "\n".join(results['documents'][0])
+        prompt = f"""You are a mind map generator. Based on the following context, generate a Mermaid.js graph TD diagram.
+Use exact Mermaid syntax. Do not wrap in markdown code blocks, just output the raw Mermaid syntax starting with 'graph TD;'.
+Keep node labels concise. Avoid special characters inside labels unless quoted.
+
+Context:
+{context}
+"""
+        response = client.models.generate_content(model="gemini-3.6-flash", contents=prompt)
+        return {"answer": response.text.replace('```mermaid', '').replace('```', '').strip()}
+    except Exception as e:
+        return {"answer": f"Mindmap Error: {str(e)}"}
+
+@app.get("/quiz")
+async def generate_quiz():
+    try:
+        results = collection.query(query_texts=["important facts and definitions"], n_results=10)
+        if not results['documents'] or not results['documents'][0]:
+            return {"answer": '[]'}
+        
+        context = "\n".join(results['documents'][0])
+        prompt = f"""Generate 3 multiple choice questions based on the following context to test the user's knowledge.
+Output a JSON array of objects. Each object must have:
+- "question" (string)
+- "options" (array of 4 strings)
+- "correctAnswer" (string, must exactly match one of the options)
+- "explanation" (string)
+
+Context:
+{context}
+"""
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(response_mime_type="application/json")
+        )
+        return {"answer": response.text}
+    except Exception as e:
+        return {"answer": "[]"}
+
 if __name__ == "__main__":
     import uvicorn
     # Render provides a PORT environment variable
