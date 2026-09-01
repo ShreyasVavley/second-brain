@@ -84,9 +84,13 @@ Answer:"""
             contents=prompt
         )
 
+        # Only show citations if the AI actually used them to formulate an answer
+        final_answer = response.text
+        citations = results['metadatas'][0] if "I cannot answer this" not in final_answer else []
+
         return {
-            "answer": response.text,
-            "citations": results['metadatas'][0]
+            "answer": final_answer,
+            "citations": citations
         }
     except Exception as e:
         return {"answer": f"Error: {str(e)}", "citations": []}
