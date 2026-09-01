@@ -113,7 +113,7 @@ function App() {
     <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F1ECE6', color: '#2E2E2E' }}>
       {/* SIDEBAR */}
       <div style={{ width: '280px', borderRight: '1px solid #DDD5CD', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#2E2E2E' }}>
-        <h2 className="cursive-font" style={{ color: '#F1ECE6', fontSize: '2rem', marginBottom: '20px', textAlign: 'center', whiteSpace: 'nowrap' }}>Suster Selly Brain</h2>
+        <h2 className="cursive-font" style={{ color: '#F1ECE6', fontSize: '2rem', marginBottom: '20px', textAlign: 'center', whiteSpace: 'nowrap' }}>VK BRAIN PRO</h2>
         
         <button onClick={runDeepAnalysis} style={btnStyle}><Layers size={18}/> Deep Analysis</button>
         <button onClick={downloadChat} style={btnStyle}><Download size={18}/> Export PDF</button>
