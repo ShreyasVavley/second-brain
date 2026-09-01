@@ -1,6 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap');
 @import "tailwindcss";
 
 body {
   margin: 0;
-  background-color: #09090b;
+  background-color: #F1ECE6;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.cursive-font {
+  font-family: 'Dancing Script', cursive;
 }

@@ -110,21 +110,21 @@ function App() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#0f111a', color: '#e6edf3' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#F1ECE6', color: '#2E2E2E' }}>
       {/* SIDEBAR */}
-      <div style={{ width: '280px', borderRight: '1px solid #333', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <h2 style={{ color: '#4facfe', fontSize: '1.2rem', marginBottom: '20px' }}>VK BRAIN PRO</h2>
+      <div style={{ width: '280px', borderRight: '1px solid #DDD5CD', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#2E2E2E' }}>
+        <h2 className="cursive-font" style={{ color: '#F1ECE6', fontSize: '2.5rem', marginBottom: '20px', textAlign: 'center' }}>Suster Selly Brain</h2>
         
         <button onClick={runDeepAnalysis} style={btnStyle}><Layers size={18}/> Deep Analysis</button>
         <button onClick={downloadChat} style={btnStyle}><Download size={18}/> Export PDF</button>
         
-        <div style={{ padding: '20px', border: '2px dashed #333', borderRadius: '12px', textAlign: 'center', background: '#1c212e', marginTop: '10px' }}>
-          <p style={{ fontSize: '0.8rem', color: '#888', marginBottom: '10px' }}>{isUploading ? "Uploading..." : "Add Notes"}</p>
+        <div style={{ padding: '20px', border: '2px dashed #7D4047', borderRadius: '12px', textAlign: 'center', background: '#3A3A3A', marginTop: '10px' }}>
+          <p style={{ fontSize: '0.8rem', color: '#DDD5CD', marginBottom: '10px' }}>{isUploading ? "Uploading..." : "Add Notes"}</p>
           <input type="file" accept=".pdf" onChange={handleFileUpload} style={{ display: 'none' }} id="up" />
-          <label htmlFor="up" style={{ backgroundColor: '#4facfe', color: '#000', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Select PDF</label>
+          <label htmlFor="up" style={{ backgroundColor: '#7D4047', color: '#F1ECE6', padding: '8px 15px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Select PDF</label>
         </div>
 
-        <button onClick={() => setMessages([])} style={{ ...btnStyle, marginTop: 'auto', backgroundColor: '#ff4757', color: '#fff', border: 'none' }}>
+        <button onClick={() => setMessages([])} style={{ ...btnStyle, marginTop: 'auto', backgroundColor: '#7D4047', color: '#F1ECE6', border: 'none' }}>
           <Trash2 size={18}/> Clear Chat
         </button>
       </div>
@@ -136,8 +136,10 @@ function App() {
             <div key={i} style={{ marginBottom: '20px', textAlign: msg.role === 'user' ? 'right' : 'left' }}>
               <div style={{ 
                 display: 'inline-block', padding: '15px', borderRadius: '12px', 
-                backgroundColor: msg.role === 'user' ? '#2d3343' : '#1c212e',
-                maxWidth: '85%', textAlign: 'left', border: msg.role === 'ai' ? '1px solid #3d4455' : 'none'
+                backgroundColor: msg.role === 'user' ? '#7D4047' : '#FFFFFF',
+                color: msg.role === 'user' ? '#FFFFFF' : '#2E2E2E',
+                maxWidth: '85%', textAlign: 'left', border: msg.role === 'ai' ? '1px solid #DDD5CD' : 'none',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
               }}>
                 <ReactMarkdown components={{
                   code({node, inline, className, children, ...props}) {
@@ -151,7 +153,7 @@ function App() {
                 {msg.citations?.length > 0 && (
                   <div style={{ marginTop: '10px', display: 'flex', gap: '5px' }}>
                     {Array.from(new Set(msg.citations.map(c => c.page))).map(p => (
-                      <span key={p} style={{ fontSize: '0.65rem', color: '#4facfe', background: 'rgba(79, 172, 254, 0.1)', padding: '2px 8px', borderRadius: '10px' }}>📄 Page {p}</span>
+                      <span key={p} style={{ fontSize: '0.65rem', color: '#7D4047', background: '#F1ECE6', padding: '2px 8px', borderRadius: '10px', border: '1px solid #DDD5CD' }}>📄 Page {p}</span>
                     ))}
                   </div>
                 )}
@@ -162,7 +164,8 @@ function App() {
             <div style={{ marginBottom: '20px', textAlign: 'left' }}>
               <div style={{ 
                 display: 'inline-block', padding: '15px', borderRadius: '12px', 
-                backgroundColor: '#1c212e', border: '1px solid #3d4455', color: '#888', fontStyle: 'italic'
+                backgroundColor: '#FFFFFF', border: '1px solid #DDD5CD', color: '#7D4047', fontStyle: 'italic',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
               }}>
                 Brain is thinking...
               </div>
@@ -173,16 +176,16 @@ function App() {
 
         {/* INPUT BAR */}
         <div style={{ position: 'absolute', bottom: '20px', left: '20px', right: '20px', display: 'flex', gap: '10px' }}>
-          <button onClick={toggleVoice} style={{ ...circleBtn, backgroundColor: isListening ? '#ff4757' : '#2d3343' }}>
+          <button onClick={toggleVoice} style={{ ...circleBtn, backgroundColor: isListening ? '#7D4047' : '#2E2E2E' }}>
             {isListening ? <MicOff size={20}/> : <Mic size={20}/>}
           </button>
           <input 
-            style={{ flex: 1, padding: '15px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#1c212e', color: '#fff', outline: 'none' }}
+            style={{ flex: 1, padding: '15px', borderRadius: '10px', border: '1px solid #DDD5CD', backgroundColor: '#FFFFFF', color: '#2E2E2E', outline: 'none' }}
             value={input} onChange={(e) => setInput(e.target.value)} 
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Ask your brain..."
           />
-          <button onClick={handleSend} style={{ padding: '0 25px', backgroundColor: '#4facfe', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+          <button onClick={handleSend} style={{ padding: '0 25px', backgroundColor: '#7D4047', color: '#F1ECE6', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
             <Send size={20} />
           </button>
         </div>
@@ -191,7 +194,7 @@ function App() {
   );
 }
 
-const btnStyle = { display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#1c212e', border: '1px solid #333', color: '#fff', padding: '12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' };
-const circleBtn = { width: '50px', height: '50px', borderRadius: '50%', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
+const btnStyle = { display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#F1ECE6', border: '1px solid #DDD5CD', color: '#2E2E2E', padding: '12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' };
+const circleBtn = { width: '50px', height: '50px', borderRadius: '50%', border: 'none', color: '#F1ECE6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
 
 export default App;
